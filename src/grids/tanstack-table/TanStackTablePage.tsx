@@ -33,6 +33,8 @@ const columnHelper = createColumnHelper<StudentRow>();
 
 type TableMeta = {
   updateData: (rowIndex: number, columnId: string, value: unknown) => Promise<void>;
+  expandedRows: Set<string>;
+  toggleExpanded: (rowId: string) => void;
 };
 
 // ─── Editable text cell ─────────────────────────────────────
@@ -172,6 +174,17 @@ function ReadonlyPassRateCell({ getValue }: CellContext<StudentRow, number>) {
       <div className="score-bar" style={{ width: `${v}%`, background: color }} />
       <span className="score-text">{v}%</span>
     </div>
+  );
+}
+
+// ─── Expand cell (reads from meta, not column closure) ──────
+function ExpandCell({ row, table }: CellContext<StudentRow, unknown>) {
+  const meta = table.options.meta as TableMeta;
+  const isExpanded = meta.expandedRows.has(row.id);
+  return (
+    <button className="expand-btn" onClick={() => meta.toggleExpanded(row.id)}>
+      {isExpanded ? '\u25BC' : '\u25B6'}
+    </button>
   );
 }
 
@@ -331,11 +344,7 @@ export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
       columnHelper.display({
         id: 'expand', size: 36, enableResizing: false, enablePinning: true,
         header: () => null,
-        cell: ({ row }) => (
-          <button className="expand-btn" onClick={() => toggleExpanded(row.id)}>
-            {expandedRows.has(row.id) ? '\u25BC' : '\u25B6'}
-          </button>
-        ),
+        cell: ExpandCell,
       }),
       columnHelper.accessor('name', {
         header: 'Name', size: 180, enableSorting: true, enablePinning: true,
@@ -379,7 +388,7 @@ export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
         cell: cellAs(ReadonlyPassRateCell),
       }),
     ],
-    [expandedRows, toggleExpanded],
+    [],
   );
 
   const table = useReactTable({
@@ -418,6 +427,8 @@ export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
           endMeasureSync('lastEdit');
         }
       },
+      expandedRows,
+      toggleExpanded,
     } satisfies TableMeta,
   });
 

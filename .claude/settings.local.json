@@ -10,7 +10,9 @@
       "Bash(grep -rn cellSelection node_modules/.pnpm/@mui+x-data-grid@8.27.5_@em_f7674022aab020acefc5fb407d0c1e0e/node_modules/@mui/x-data-grid/ --include=*.d.ts)",
       "Bash(grep -ri Expanded node_modules/.pnpm/@tanstack+table-core@*/node_modules/@tanstack/table-core/build/lib/index.d.ts)",
       "Bash(grep ExpandedState node_modules/.pnpm/@tanstack+react-table@8.21.3*/node_modules/@tanstack/react-table/build/lib/index.d.ts)",
-      "Bash(find node_modules/.pnpm/@tanstack+react-table@8.21.3* -name index.d.ts)"
+      "Bash(find node_modules/.pnpm/@tanstack+react-table@8.21.3* -name index.d.ts)",
+      "WebFetch(domain:probable-broccoli-v358v4n.pages.github.io)",
+      "Bash(npx vite:*)"
     ]
   }
 }
