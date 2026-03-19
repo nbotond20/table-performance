@@ -1,0 +1,62 @@
+.perf-panel {
+  background: #1e1e2e;
+  border: 2px solid #313244;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+  transition: border-color 0.1s;
+}
+
+/* Rerender flash visualizer */
+.perf-panel.rerender-flash {
+  animation: flash-border 0.4s ease-out;
+}
+
+@keyframes flash-border {
+  0% {
+    border-color: #f38ba8;
+    box-shadow: 0 0 8px rgba(243, 139, 168, 0.4);
+  }
+  100% {
+    border-color: #313244;
+    box-shadow: none;
+  }
+}
+
+.perf-panel h3 {
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #cdd6f4;
+}
+
+.perf-grid {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.perf-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.perf-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #a6adc8;
+}
+
+.perf-value {
+  font-size: 20px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: #89b4fa;
+}
+
+.perf-value--render {
+  color: #f9e2af;
+}

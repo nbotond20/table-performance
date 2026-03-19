@@ -1,0 +1,183 @@
+.tanstack-page {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.search-input {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  width: 320px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  border-color: var(--accent);
+}
+
+.search-input::placeholder {
+  color: var(--text-muted);
+}
+
+.row-count {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.table-scroll-container {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+.ts-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: collapse;
+}
+
+.ts-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #181825;
+}
+
+.ts-table th {
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.ts-table th.sortable {
+  cursor: pointer;
+}
+
+.ts-table th.sortable:hover {
+  color: var(--text);
+  background: rgba(137, 180, 250, 0.05);
+}
+
+.ts-table td {
+  padding: 4px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(49, 50, 68, 0.4);
+  white-space: nowrap;
+}
+
+.ts-table tr.row-selected td {
+  background: rgba(137, 180, 250, 0.1);
+}
+
+.ts-table td.cell-selected {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* Cell value / editable wrapper */
+.cell-value {
+  cursor: default;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+
+.cell-input {
+  width: 100%;
+  padding: 2px 4px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+
+/* Select dropdown in edit mode */
+.cell-select {
+  width: 100%;
+  padding: 2px 4px;
+  border: 1px solid var(--accent);
+  border-radius: 3px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+}
+
+/* Status cell with icon */
+.status-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Grade badge */
+.grade-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 22px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #11111b;
+}
+
+/* Score cell with progress bar */
+.score-cell {
+  position: relative;
+  width: 100%;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  cursor: default;
+}
+
+.score-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.2;
+}
+
+.score-text {
+  position: relative;
+  z-index: 1;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding-left: 4px;
+}
+
+/* Checkbox styling */
+.ts-table input[type='checkbox'] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
