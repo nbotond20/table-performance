@@ -157,7 +157,6 @@ const columns: GridColDef[] = [
 
 // --- Editable field order for Tab/Enter navigation ---
 const EDITABLE_FIELDS = columns.filter((c) => c.editable).map((c) => c.field);
-const SELECT_FIELDS = new Set(['grade', 'status']);
 
 // --- Initial pinned columns ---
 const INITIAL_PINNED: GridPinnedColumnFields = {
@@ -252,8 +251,6 @@ export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
     (params: GridCellParams, event: React.KeyboardEvent) => {
       if (params.cellMode !== 'edit') return;
       if (event.key !== 'Tab' && event.key !== 'Enter') return;
-      // Let Enter work normally for select dropdowns (grade/status)
-      if (event.key === 'Enter' && SELECT_FIELDS.has(params.field)) return;
 
       event.preventDefault();
       event.stopPropagation();

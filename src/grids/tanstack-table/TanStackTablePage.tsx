@@ -165,7 +165,7 @@ function GradeSelectCell({ getValue, row, column, table }: CellContext<StudentRo
     <select className="cell-select" value={initialValue} autoFocus
       onChange={(e) => { meta.updateData(row.index, column.id, e.target.value); onNavigate(); }}
       onBlur={() => meta.clearEditing()}
-      onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); onNavigate(); } }}>
+      onKeyDown={(e) => { if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); onNavigate(); } }}>
       {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
     </select>
   );
@@ -198,7 +198,7 @@ function StatusSelectCell({ getValue, row, column, table }: CellContext<StudentR
     <select className="cell-select" value={initialValue} autoFocus
       onChange={(e) => { meta.updateData(row.index, column.id, e.target.value); onNavigate(); }}
       onBlur={() => meta.clearEditing()}
-      onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); onNavigate(); } }}>
+      onKeyDown={(e) => { if (e.key === 'Tab' || e.key === 'Enter') { e.preventDefault(); onNavigate(); } }}>
       {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
     </select>
   );

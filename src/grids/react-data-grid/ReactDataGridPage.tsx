@@ -148,7 +148,7 @@ function GradeEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<
       }}
       onBlur={() => onRowChange(row, true)}
       onKeyDown={(e) => {
-        if (e.key === 'Tab') {
+        if (e.key === 'Tab' || e.key === 'Enter') {
           e.preventDefault();
           onClose(true);
           navigateToNextEditableCell(column.key, row.id);
@@ -172,7 +172,7 @@ function StatusEditor({ row, column, onRowChange, onClose }: RenderEditCellProps
       }}
       onBlur={() => onRowChange(row, true)}
       onKeyDown={(e) => {
-        if (e.key === 'Tab') {
+        if (e.key === 'Tab' || e.key === 'Enter') {
           e.preventDefault();
           onClose(true);
           navigateToNextEditableCell(column.key, row.id);
