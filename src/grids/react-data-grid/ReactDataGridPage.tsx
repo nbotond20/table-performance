@@ -46,7 +46,6 @@ function navigateToNextEditableCell(currentColKey: string, rowId: number) {
   setTimeout(() => _gridHandle?.selectCell({ idx: nextColIdx, rowIdx }, true), 0);
 }
 
-const EDIT_ON_CLICK = { editOnClick: true } as const;
 
 // ─── Score bar renderer ─────────────────────────────────────
 function ScoreBar({ value }: { value: number }) {
@@ -305,15 +304,15 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
         );
       },
     },
-    { key: 'name', name: 'Name', width: 180, frozen: true, resizable: true, sortable: true, renderEditCell: TextEditor, editorOptions: EDIT_ON_CLICK },
-    { key: 'email', name: 'Email', width: 260, resizable: true, sortable: true, renderEditCell: TextEditor, editorOptions: EDIT_ON_CLICK },
-    { key: 'age', name: 'Age', width: 70, resizable: true, sortable: true, renderEditCell: NumberEditor, editorOptions: EDIT_ON_CLICK },
-    { key: 'grade', name: 'Grade', width: 80, resizable: true, sortable: true, renderCell: renderGradeCell, renderEditCell: GradeEditor, editorOptions: EDIT_ON_CLICK },
-    { key: 'status', name: 'Status', width: 120, resizable: true, sortable: true, renderCell: renderStatusCell, renderEditCell: StatusEditor, editorOptions: EDIT_ON_CLICK },
-    { key: 'enrollmentDate', name: 'Enrolled', width: 120, resizable: true, sortable: true, renderEditCell: TextEditor, editorOptions: EDIT_ON_CLICK },
+    { key: 'name', name: 'Name', width: 180, frozen: true, resizable: true, sortable: true, renderEditCell: TextEditor },
+    { key: 'email', name: 'Email', width: 260, resizable: true, sortable: true, renderEditCell: TextEditor },
+    { key: 'age', name: 'Age', width: 70, resizable: true, sortable: true, renderEditCell: NumberEditor },
+    { key: 'grade', name: 'Grade', width: 80, resizable: true, sortable: true, renderCell: renderGradeCell, renderEditCell: GradeEditor },
+    { key: 'status', name: 'Status', width: 120, resizable: true, sortable: true, renderCell: renderStatusCell, renderEditCell: StatusEditor },
+    { key: 'enrollmentDate', name: 'Enrolled', width: 120, resizable: true, sortable: true, renderEditCell: TextEditor },
     ...EXERCISE_KEYS.map((key, i): Column<RowType> => ({
       key, name: `Ex ${i + 1}`, width: 90, resizable: true, sortable: true,
-      renderCell: renderScoreCell(key), renderEditCell: NumberEditor, editorOptions: EDIT_ON_CLICK,
+      renderCell: renderScoreCell(key), renderEditCell: NumberEditor,
     })),
     { key: 'avgScore', name: 'Avg', width: 80, resizable: true, sortable: true, renderCell: renderReadonlyScore },
     { key: 'minScore', name: 'Min', width: 70, resizable: true, sortable: true, renderCell: renderReadonlyScore },
@@ -366,6 +365,16 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
     displayRows.forEach((r, i) => { if (r._type !== 'detail') map.set(r.id, i); });
     _rowIdToIdx = map;
   }, [displayRows]);
+
+  // ─── Single-click to enter edit mode ───────────────────
+  const handleCellClick = useCallback((args: { row: RowType; column: { key: string } }) => {
+    if (args.row._type === 'detail') return;
+    const colIdx = COL_KEY_TO_IDX[args.column.key];
+    if (colIdx === undefined) return;
+    const rowIdx = _rowIdToIdx.get(args.row.id);
+    if (rowIdx === undefined) return;
+    _gridHandle?.selectCell({ idx: colIdx, rowIdx }, true);
+  }, []);
 
   // ─── Row key getter ────────────────────────────────────
   const rowKeyGetter = useCallback((row: RowType) => row._type === 'detail' ? `detail-${row._parentId}` : row.id, []);
@@ -481,6 +490,7 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
           selectedRows={selectedRows}
           onSelectedRowsChange={setSelectedRows as (rows: Set<string | number>) => void}
           onRowsChange={handleRowsChange}
+          onCellClick={handleCellClick as any}
           renderers={renderers}
           defaultColumnOptions={{ resizable: true, sortable: true }}
           className="rdg-dark rdg-custom"
