@@ -31,28 +31,48 @@ import './TanStackTablePage.css';
 
 const columnHelper = createColumnHelper<StudentRow>();
 
+// ─── Editable column order for Tab/Enter navigation ─────
+const EDITABLE_COLUMNS = ['name', 'email', 'age', 'grade', 'status', 'enrollmentDate', ...EXERCISE_KEYS];
+
+function getNextEditableColumn(currentColumnId: string): string | null {
+  const idx = EDITABLE_COLUMNS.indexOf(currentColumnId);
+  if (idx === -1 || idx >= EDITABLE_COLUMNS.length - 1) return null;
+  return EDITABLE_COLUMNS[idx + 1];
+}
+
 type TableMeta = {
   updateData: (rowIndex: number, columnId: string, value: unknown) => Promise<void>;
   expandedRows: Set<string>;
   toggleExpanded: (rowId: string) => void;
+  editingCell: { rowId: string; columnId: string } | null;
+  startEditing: (rowId: string, columnId: string) => void;
+  clearEditing: () => void;
 };
 
 // ─── Editable text cell ─────────────────────────────────────
 function EditableTextCell({ getValue, row, column, table }: CellContext<StudentRow, string>) {
   const initialValue = getValue();
   const [value, setValue] = useState(initialValue);
-  const [editing, setEditing] = useState(false);
+  const meta = table.options.meta as TableMeta;
+  const editing = meta.editingCell?.rowId === row.id && meta.editingCell?.columnId === column.id;
   useEffect(() => { setValue(initialValue); }, [initialValue]);
-  const onSave = async () => {
-    setEditing(false);
-    if (value === initialValue) return;
-    await (table.options.meta as TableMeta).updateData(row.index, column.id, value);
+  const onSave = () => {
+    meta.clearEditing();
+    if (value !== initialValue) meta.updateData(row.index, column.id, value);
   };
-  if (!editing) return <div className="cell-value" onDoubleClick={() => setEditing(true)}>{initialValue}</div>;
+  const onNavigate = () => {
+    if (value !== initialValue) meta.updateData(row.index, column.id, value);
+    const next = getNextEditableColumn(column.id);
+    if (next) meta.startEditing(row.id, next); else meta.clearEditing();
+  };
+  if (!editing) return <div className="cell-value" onClick={() => meta.startEditing(row.id, column.id)}>{initialValue}</div>;
   return (
     <input className="cell-input" type="text" value={value} autoFocus
       onChange={(e) => setValue(e.target.value)} onBlur={onSave}
-      onKeyDown={(e) => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape') { setValue(initialValue); setEditing(false); } }} />
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); onNavigate(); }
+        if (e.key === 'Escape') { setValue(initialValue); meta.clearEditing(); }
+      }} />
   );
 }
 
@@ -60,19 +80,25 @@ function EditableTextCell({ getValue, row, column, table }: CellContext<StudentR
 function EditableScoreCell({ getValue, row, column, table }: CellContext<StudentRow, number>) {
   const initialValue = getValue();
   const [value, setValue] = useState(initialValue);
-  const [editing, setEditing] = useState(false);
+  const meta = table.options.meta as TableMeta;
+  const editing = meta.editingCell?.rowId === row.id && meta.editingCell?.columnId === column.id;
   useEffect(() => { setValue(initialValue); }, [initialValue]);
-  const onSave = async () => {
-    setEditing(false);
+  const onSave = () => {
+    meta.clearEditing();
     const numVal = Number(value);
-    if (numVal === initialValue) return;
-    await (table.options.meta as TableMeta).updateData(row.index, column.id, numVal);
+    if (numVal !== initialValue) meta.updateData(row.index, column.id, numVal);
+  };
+  const onNavigate = () => {
+    const numVal = Number(value);
+    if (numVal !== initialValue) meta.updateData(row.index, column.id, numVal);
+    const next = getNextEditableColumn(column.id);
+    if (next) meta.startEditing(row.id, next); else meta.clearEditing();
   };
   if (!editing) {
     const v = initialValue ?? 0;
     const color = v >= 80 ? '#a6e3a1' : v >= 50 ? '#f9e2af' : '#f38ba8';
     return (
-      <div className="score-cell" onDoubleClick={() => setEditing(true)}>
+      <div className="score-cell" onClick={() => meta.startEditing(row.id, column.id)}>
         <div className="score-bar" style={{ width: `${v}%`, background: color }} />
         <span className="score-text">{v}</span>
       </div>
@@ -81,7 +107,10 @@ function EditableScoreCell({ getValue, row, column, table }: CellContext<Student
   return (
     <input className="cell-input" type="number" value={value} autoFocus
       onChange={(e) => setValue(Number(e.target.value))} onBlur={onSave}
-      onKeyDown={(e) => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape') { setValue(initialValue); setEditing(false); } }} />
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); onNavigate(); }
+        if (e.key === 'Escape') { setValue(initialValue); meta.clearEditing(); }
+      }} />
   );
 }
 
@@ -89,19 +118,28 @@ function EditableScoreCell({ getValue, row, column, table }: CellContext<Student
 function EditableNumberCell({ getValue, row, column, table }: CellContext<StudentRow, number>) {
   const initialValue = getValue();
   const [value, setValue] = useState(initialValue);
-  const [editing, setEditing] = useState(false);
+  const meta = table.options.meta as TableMeta;
+  const editing = meta.editingCell?.rowId === row.id && meta.editingCell?.columnId === column.id;
   useEffect(() => { setValue(initialValue); }, [initialValue]);
-  const onSave = async () => {
-    setEditing(false);
+  const onSave = () => {
+    meta.clearEditing();
     const numVal = Number(value);
-    if (numVal === initialValue) return;
-    await (table.options.meta as TableMeta).updateData(row.index, column.id, numVal);
+    if (numVal !== initialValue) meta.updateData(row.index, column.id, numVal);
   };
-  if (!editing) return <div className="cell-value" onDoubleClick={() => setEditing(true)}>{initialValue}</div>;
+  const onNavigate = () => {
+    const numVal = Number(value);
+    if (numVal !== initialValue) meta.updateData(row.index, column.id, numVal);
+    const next = getNextEditableColumn(column.id);
+    if (next) meta.startEditing(row.id, next); else meta.clearEditing();
+  };
+  if (!editing) return <div className="cell-value" onClick={() => meta.startEditing(row.id, column.id)}>{initialValue}</div>;
   return (
     <input className="cell-input" type="number" value={value} autoFocus
       onChange={(e) => setValue(Number(e.target.value))} onBlur={onSave}
-      onKeyDown={(e) => { if (e.key === 'Enter') onSave(); if (e.key === 'Escape') { setValue(initialValue); setEditing(false); } }} />
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); onNavigate(); }
+        if (e.key === 'Escape') { setValue(initialValue); meta.clearEditing(); }
+      }} />
   );
 }
 
@@ -110,18 +148,24 @@ const GRADE_COLORS: Record<Grade, string> = { A: '#a6e3a1', B: '#89b4fa', C: '#f
 
 function GradeSelectCell({ getValue, row, column, table }: CellContext<StudentRow, Grade>) {
   const initialValue = getValue();
-  const [editing, setEditing] = useState(false);
+  const meta = table.options.meta as TableMeta;
+  const editing = meta.editingCell?.rowId === row.id && meta.editingCell?.columnId === column.id;
   if (!editing) {
     return (
-      <div className="cell-value" onDoubleClick={() => setEditing(true)}>
+      <div className="cell-value" onClick={() => meta.startEditing(row.id, column.id)}>
         <span className="grade-badge" style={{ background: GRADE_COLORS[initialValue] }}>{initialValue}</span>
       </div>
     );
   }
+  const onNavigate = () => {
+    const next = getNextEditableColumn(column.id);
+    if (next) meta.startEditing(row.id, next); else meta.clearEditing();
+  };
   return (
     <select className="cell-select" value={initialValue} autoFocus
-      onChange={async (e) => { setEditing(false); await (table.options.meta as TableMeta).updateData(row.index, column.id, e.target.value); }}
-      onBlur={() => setEditing(false)}>
+      onChange={(e) => { meta.updateData(row.index, column.id, e.target.value); onNavigate(); }}
+      onBlur={() => meta.clearEditing()}
+      onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); onNavigate(); } }}>
       {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
     </select>
   );
@@ -136,19 +180,25 @@ const STATUS_CFG: Record<Status, { icon: string; color: string }> = {
 
 function StatusSelectCell({ getValue, row, column, table }: CellContext<StudentRow, Status>) {
   const initialValue = getValue();
-  const [editing, setEditing] = useState(false);
+  const meta = table.options.meta as TableMeta;
+  const editing = meta.editingCell?.rowId === row.id && meta.editingCell?.columnId === column.id;
   if (!editing) {
     const cfg = STATUS_CFG[initialValue];
     return (
-      <div className="cell-value status-cell" onDoubleClick={() => setEditing(true)}>
+      <div className="cell-value status-cell" onClick={() => meta.startEditing(row.id, column.id)}>
         <span style={{ color: cfg.color }}>{cfg.icon}</span> {initialValue}
       </div>
     );
   }
+  const onNavigate = () => {
+    const next = getNextEditableColumn(column.id);
+    if (next) meta.startEditing(row.id, next); else meta.clearEditing();
+  };
   return (
     <select className="cell-select" value={initialValue} autoFocus
-      onChange={async (e) => { setEditing(false); await (table.options.meta as TableMeta).updateData(row.index, column.id, e.target.value); }}
-      onBlur={() => setEditing(false)}>
+      onChange={(e) => { meta.updateData(row.index, column.id, e.target.value); onNavigate(); }}
+      onBlur={() => meta.clearEditing()}
+      onKeyDown={(e) => { if (e.key === 'Tab') { e.preventDefault(); onNavigate(); } }}>
       {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
     </select>
   );
@@ -274,6 +324,9 @@ export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
     right: ['avgScore', 'passRate'],
   });
   const [bulkGrade, setBulkGrade] = useState<Grade>('A');
+  const [editingCell, setEditingCell] = useState<{ rowId: string; columnId: string } | null>(null);
+  const startEditing = useCallback((rowId: string, columnId: string) => setEditingCell({ rowId, columnId }), []);
+  const clearEditing = useCallback(() => setEditingCell(null), []);
 
   // Reset data when rowCount changes
   useEffect(() => {
@@ -429,6 +482,9 @@ export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
       },
       expandedRows,
       toggleExpanded,
+      editingCell,
+      startEditing,
+      clearEditing,
     } satisfies TableMeta,
   });
 

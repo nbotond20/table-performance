@@ -29,6 +29,25 @@ const STATUS_CFG: Record<Status, { icon: string; color: string }> = {
   Graduated: { icon: '\u25CF', color: '#89b4fa' },
 };
 
+// ─── Single-click & Tab/Enter navigation helpers ─────────────
+const EDITABLE_COL_KEYS = ['name', 'email', 'age', 'grade', 'status', 'enrollmentDate', ...EXERCISE_KEYS];
+const COL_KEY_TO_IDX: Record<string, number> = {};
+EDITABLE_COL_KEYS.forEach((key, i) => { COL_KEY_TO_IDX[key] = i + 2; }); // +2 for SelectColumn & expand
+
+let _gridHandle: { selectCell: (pos: { idx: number; rowIdx: number }, enableEditor?: boolean) => void } | null = null;
+let _rowIdToIdx: Map<number, number> = new Map();
+
+function navigateToNextEditableCell(currentColKey: string, rowId: number) {
+  const currentPos = EDITABLE_COL_KEYS.indexOf(currentColKey);
+  if (currentPos === -1 || currentPos >= EDITABLE_COL_KEYS.length - 1) return;
+  const nextColIdx = COL_KEY_TO_IDX[EDITABLE_COL_KEYS[currentPos + 1]];
+  const rowIdx = _rowIdToIdx.get(rowId) ?? -1;
+  if (rowIdx === -1) return;
+  setTimeout(() => _gridHandle?.selectCell({ idx: nextColIdx, rowIdx }, true), 0);
+}
+
+const EDIT_ON_CLICK = { editOnClick: true } as const;
+
 // ─── Score bar renderer ─────────────────────────────────────
 function ScoreBar({ value }: { value: number }) {
   const v = value ?? 0;
@@ -86,7 +105,11 @@ function TextEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<R
       onChange={(e) => onRowChange({ ...row, [column.key]: e.target.value })}
       onBlur={() => onClose(true)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onClose(true);
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          e.preventDefault();
+          onClose(true);
+          navigateToNextEditableCell(column.key, row.id);
+        }
         if (e.key === 'Escape') onClose(false);
       }}
     />
@@ -103,35 +126,59 @@ function NumberEditor({ row, column, onRowChange, onClose }: RenderEditCellProps
       onChange={(e) => onRowChange({ ...row, [column.key]: Number(e.target.value) })}
       onBlur={() => onClose(true)}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') onClose(true);
+        if (e.key === 'Enter' || e.key === 'Tab') {
+          e.preventDefault();
+          onClose(true);
+          navigateToNextEditableCell(column.key, row.id);
+        }
         if (e.key === 'Escape') onClose(false);
       }}
     />
   );
 }
 
-function GradeEditor({ row, onRowChange }: RenderEditCellProps<RowType>) {
+function GradeEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<RowType>) {
   return (
     <select
       className="rdg-cell-select"
       autoFocus
       value={row.grade}
-      onChange={(e) => onRowChange({ ...row, grade: e.target.value as Grade }, true)}
+      onChange={(e) => {
+        onRowChange({ ...row, grade: e.target.value as Grade }, true);
+        navigateToNextEditableCell(column.key, row.id);
+      }}
       onBlur={() => onRowChange(row, true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          onClose(true);
+          navigateToNextEditableCell(column.key, row.id);
+        }
+      }}
     >
       {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
     </select>
   );
 }
 
-function StatusEditor({ row, onRowChange }: RenderEditCellProps<RowType>) {
+function StatusEditor({ row, column, onRowChange, onClose }: RenderEditCellProps<RowType>) {
   return (
     <select
       className="rdg-cell-select"
       autoFocus
       value={row.status}
-      onChange={(e) => onRowChange({ ...row, status: e.target.value as Status }, true)}
+      onChange={(e) => {
+        onRowChange({ ...row, status: e.target.value as Status }, true);
+        navigateToNextEditableCell(column.key, row.id);
+      }}
       onBlur={() => onRowChange(row, true)}
+      onKeyDown={(e) => {
+        if (e.key === 'Tab') {
+          e.preventDefault();
+          onClose(true);
+          navigateToNextEditableCell(column.key, row.id);
+        }
+      }}
     >
       {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
     </select>
@@ -179,7 +226,10 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
   const [bulkGrade, setBulkGrade] = useState<Grade>('A');
 
-  // No reset effect needed — App.tsx remounts this component via key when rowCount changes
+  // Grid ref for programmatic cell selection (Tab/Enter navigation)
+  const gridRefCallback = useCallback((handle: { selectCell: (pos: { idx: number; rowIdx: number }, enableEditor?: boolean) => void } | null) => {
+    _gridHandle = handle;
+  }, []);
 
   const {
     metrics, startMeasure, endMeasure, endMeasureSync, setMetric,
@@ -255,15 +305,15 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
         );
       },
     },
-    { key: 'name', name: 'Name', width: 180, frozen: true, resizable: true, sortable: true, renderEditCell: TextEditor },
-    { key: 'email', name: 'Email', width: 260, resizable: true, sortable: true, renderEditCell: TextEditor },
-    { key: 'age', name: 'Age', width: 70, resizable: true, sortable: true, renderEditCell: NumberEditor },
-    { key: 'grade', name: 'Grade', width: 80, resizable: true, sortable: true, renderCell: renderGradeCell, renderEditCell: GradeEditor },
-    { key: 'status', name: 'Status', width: 120, resizable: true, sortable: true, renderCell: renderStatusCell, renderEditCell: StatusEditor },
-    { key: 'enrollmentDate', name: 'Enrolled', width: 120, resizable: true, sortable: true, renderEditCell: TextEditor },
+    { key: 'name', name: 'Name', width: 180, frozen: true, resizable: true, sortable: true, renderEditCell: TextEditor, editorOptions: EDIT_ON_CLICK },
+    { key: 'email', name: 'Email', width: 260, resizable: true, sortable: true, renderEditCell: TextEditor, editorOptions: EDIT_ON_CLICK },
+    { key: 'age', name: 'Age', width: 70, resizable: true, sortable: true, renderEditCell: NumberEditor, editorOptions: EDIT_ON_CLICK },
+    { key: 'grade', name: 'Grade', width: 80, resizable: true, sortable: true, renderCell: renderGradeCell, renderEditCell: GradeEditor, editorOptions: EDIT_ON_CLICK },
+    { key: 'status', name: 'Status', width: 120, resizable: true, sortable: true, renderCell: renderStatusCell, renderEditCell: StatusEditor, editorOptions: EDIT_ON_CLICK },
+    { key: 'enrollmentDate', name: 'Enrolled', width: 120, resizable: true, sortable: true, renderEditCell: TextEditor, editorOptions: EDIT_ON_CLICK },
     ...EXERCISE_KEYS.map((key, i): Column<RowType> => ({
       key, name: `Ex ${i + 1}`, width: 90, resizable: true, sortable: true,
-      renderCell: renderScoreCell(key), renderEditCell: NumberEditor,
+      renderCell: renderScoreCell(key), renderEditCell: NumberEditor, editorOptions: EDIT_ON_CLICK,
     })),
     { key: 'avgScore', name: 'Avg', width: 80, resizable: true, sortable: true, renderCell: renderReadonlyScore },
     { key: 'minScore', name: 'Min', width: 70, resizable: true, sortable: true, renderCell: renderReadonlyScore },
@@ -309,6 +359,13 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
     }
     return result;
   }, [sortedFilteredRows, expandedRows]);
+
+  // ─── Keep row-id-to-index map in sync for Tab/Enter navigation ──
+  useEffect(() => {
+    const map = new Map<number, number>();
+    displayRows.forEach((r, i) => { if (r._type !== 'detail') map.set(r.id, i); });
+    _rowIdToIdx = map;
+  }, [displayRows]);
 
   // ─── Row key getter ────────────────────────────────────
   const rowKeyGetter = useCallback((row: RowType) => row._type === 'detail' ? `detail-${row._parentId}` : row.id, []);
@@ -413,6 +470,7 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
       </div>
       <div className="rdg-container">
         <DataGrid
+          ref={gridRefCallback as any}
           columns={columns}
           rows={displayRows}
           rowKeyGetter={rowKeyGetter}

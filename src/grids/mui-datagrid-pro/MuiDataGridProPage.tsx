@@ -8,6 +8,8 @@ import {
   type GridRowSelectionModel,
   type GridRowParams,
   type GridPinnedColumnFields,
+  useGridApiRef,
+  type GridCellParams,
 } from '@mui/x-data-grid-pro';
 import type { StudentRow, Grade, Status } from '../../types/student';
 import { EXERCISE_KEYS, GRADES, STATUSES } from '../../types/student';
@@ -153,6 +155,10 @@ const columns: GridColDef[] = [
   { field: 'passRate', headerName: 'Pass %', width: 90, renderCell: renderPassRate, getApplyQuickFilterFn: () => null },
 ];
 
+// --- Editable field order for Tab/Enter navigation ---
+const EDITABLE_FIELDS = columns.filter((c) => c.editable).map((c) => c.field);
+const SELECT_FIELDS = new Set(['grade', 'status']);
+
 // --- Initial pinned columns ---
 const INITIAL_PINNED: GridPinnedColumnFields = {
   left: ['__check__', '__detail_panel_toggle__', 'name'],
@@ -160,6 +166,7 @@ const INITIAL_PINNED: GridPinnedColumnFields = {
 };
 
 export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
+  const apiRef = useGridApiRef();
   const students = useMemo(() => getStudents(rowCount), [rowCount]);
   const [rows, setRows] = useState<StudentRow[]>(() => [...students]);
   const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
@@ -204,7 +211,7 @@ export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
   }, [selectionModel, selectedCount, bulkGrade, startMeasure, endMeasureSync]);
 
   const processRowUpdate = useCallback(
-    async (newRow: StudentRow, oldRow: StudentRow) => {
+    (newRow: StudentRow, oldRow: StudentRow) => {
       startMeasure('lastEdit');
       const changedField = Object.keys(newRow).find(
         (k) => newRow[k as keyof StudentRow] !== oldRow[k as keyof StudentRow],
@@ -213,20 +220,51 @@ export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
         computeAggregates(newRow);
       }
       setRows((prev) => prev.map((r) => (r.id === newRow.id ? newRow : r)));
-      try {
-        if (changedField) {
-          await mockDbSave(newRow.id, changedField, newRow[changedField as keyof StudentRow]);
-        }
+      if (changedField) {
+        mockDbSave(newRow.id, changedField, newRow[changedField as keyof StudentRow]).then(
+          () => endMeasureSync('lastEdit'),
+          (err) => {
+            console.error('[MUI] Save failed, reverting:', err);
+            setRows((prev) => prev.map((r) => (r.id === oldRow.id ? oldRow : r)));
+            endMeasureSync('lastEdit');
+          },
+        );
+      } else {
         endMeasureSync('lastEdit');
-        return newRow;
-      } catch (err) {
-        console.error('[MUI] Save failed, reverting:', err);
-        setRows((prev) => prev.map((r) => (r.id === oldRow.id ? oldRow : r)));
-        endMeasureSync('lastEdit');
-        return oldRow;
       }
+      return newRow;
     },
     [startMeasure, endMeasureSync],
+  );
+
+  // Single-click to enter edit mode
+  const handleCellClick = useCallback(
+    (params: GridCellParams) => {
+      if (params.isEditable && params.cellMode !== 'edit') {
+        apiRef.current?.startCellEditMode({ id: params.id, field: params.field });
+      }
+    },
+    [apiRef],
+  );
+
+  // Tab/Enter navigate to next editable cell in the row
+  const handleCellKeyDown = useCallback(
+    (params: GridCellParams, event: React.KeyboardEvent) => {
+      if (params.cellMode !== 'edit') return;
+      if (event.key !== 'Tab' && event.key !== 'Enter') return;
+      // Let Enter work normally for select dropdowns (grade/status)
+      if (event.key === 'Enter' && SELECT_FIELDS.has(params.field)) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      const currentIdx = EDITABLE_FIELDS.indexOf(params.field);
+      const nextField = currentIdx < EDITABLE_FIELDS.length - 1 ? EDITABLE_FIELDS[currentIdx + 1] : null;
+      apiRef.current?.stopCellEditMode({ id: params.id, field: params.field });
+      if (nextField) {
+        setTimeout(() => apiRef.current?.startCellEditMode({ id: params.id, field: nextField }), 0);
+      }
+    },
+    [apiRef],
   );
 
   const handleSortModelChange = useCallback(() => {
@@ -265,6 +303,7 @@ export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
         </div>
         <div className="mui-grid-container">
           <DataGridPro
+            apiRef={apiRef}
             rows={rows}
             columns={columns}
             checkboxSelection
@@ -275,6 +314,8 @@ export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
             onProcessRowUpdateError={handleProcessRowUpdateError}
             onSortModelChange={handleSortModelChange}
             onFilterModelChange={handleFilterModelChange}
+            onCellClick={handleCellClick}
+            onCellKeyDown={handleCellKeyDown}
             pinnedColumns={INITIAL_PINNED}
             getDetailPanelContent={getDetailPanelContent}
             getDetailPanelHeight={getDetailPanelHeight}
