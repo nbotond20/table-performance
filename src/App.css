@@ -56,6 +56,24 @@
   flex-direction: column;
 }
 
+.row-count-config {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.row-count-config select {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+}
+
 .loading {
   display: flex;
   align-items: center;

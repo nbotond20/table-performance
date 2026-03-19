@@ -1,17 +1,17 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { createTheme, ThemeProvider } from '@mui/material/styles';
 import {
   DataGridPro,
-  Toolbar,
-  QuickFilter,
-  QuickFilterControl,
   type GridColDef,
   type GridRenderCellParams,
   type GridRenderEditCellParams,
+  type GridRowSelectionModel,
+  type GridRowParams,
+  type GridPinnedColumnFields,
 } from '@mui/x-data-grid-pro';
 import type { StudentRow, Grade, Status } from '../../types/student';
 import { EXERCISE_KEYS, GRADES, STATUSES } from '../../types/student';
-import { students, computeAggregates } from '../../data/generateStudents';
+import { getStudents, computeAggregates } from '../../data/generateStudents';
 import { mockDbSave } from '../../data/mockDb';
 import { usePerformanceTracker } from '../../hooks/usePerformanceTracker';
 import { PerformancePanel } from '../../components/PerformancePanel';
@@ -43,12 +43,8 @@ function renderStatus(params: GridRenderCellParams<StudentRow, Status>) {
 
 function renderEditStatus(params: GridRenderEditCellParams) {
   return (
-    <select
-      className="grid-select"
-      value={params.value as string}
-      autoFocus
-      onChange={(e) => params.api.setEditCellValue({ id: params.id, field: params.field, value: e.target.value })}
-    >
+    <select className="grid-select" value={params.value as string} autoFocus
+      onChange={(e) => params.api.setEditCellValue({ id: params.id, field: params.field, value: e.target.value })}>
       {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
     </select>
   );
@@ -69,12 +65,8 @@ function renderGrade(params: GridRenderCellParams<StudentRow, Grade>) {
 
 function renderEditGrade(params: GridRenderEditCellParams) {
   return (
-    <select
-      className="grid-select"
-      value={params.value as string}
-      autoFocus
-      onChange={(e) => params.api.setEditCellValue({ id: params.id, field: params.field, value: e.target.value })}
-    >
+    <select className="grid-select" value={params.value as string} autoFocus
+      onChange={(e) => params.api.setEditCellValue({ id: params.id, field: params.field, value: e.target.value })}>
       {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
     </select>
   );
@@ -92,7 +84,6 @@ function renderScore(params: GridRenderCellParams<StudentRow, number>) {
   );
 }
 
-// --- Pass rate progress renderer ---
 function renderPassRate(params: GridRenderCellParams<StudentRow, number>) {
   const v = params.value ?? 0;
   const color = v >= 80 ? '#a6e3a1' : v >= 50 ? '#f9e2af' : '#f38ba8';
@@ -104,35 +95,57 @@ function renderPassRate(params: GridRenderCellParams<StudentRow, number>) {
   );
 }
 
-// --- Column definitions ---
+// --- Detail panel for row expansion ---
+function DetailPanel({ row }: { row: GridRowParams<StudentRow> }) {
+  const student = row.row;
+  return (
+    <div className="detail-panel">
+      <div className="detail-info">
+        <h4>{student.name}</h4>
+        <p>{student.email} &middot; Age {student.age} &middot; {student.status} &middot; Enrolled {student.enrollmentDate}</p>
+      </div>
+      <div className="detail-scores">
+        <span className="detail-label">Exercise Scores</span>
+        <div className="detail-bars">
+          {EXERCISE_KEYS.map((key, i) => {
+            const v = student[key] as number;
+            const color = v >= 80 ? '#a6e3a1' : v >= 50 ? '#f9e2af' : '#f38ba8';
+            return (
+              <div key={key} className="detail-bar-item">
+                <span className="detail-bar-label">{i + 1}</span>
+                <div className="detail-bar-track">
+                  <div className="detail-bar-fill" style={{ width: `${v}%`, background: color }} />
+                </div>
+                <span className="detail-bar-value">{v}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// --- Column definitions (resizable by default in Pro) ---
 const columns: GridColDef[] = [
   { field: 'name', headerName: 'Name', width: 180, editable: true },
   { field: 'email', headerName: 'Email', width: 260, editable: true, getApplyQuickFilterFn: () => null },
   { field: 'age', headerName: 'Age', width: 70, type: 'number', editable: true, getApplyQuickFilterFn: () => null },
   {
     field: 'grade', headerName: 'Grade', width: 80, editable: true,
-    renderCell: renderGrade, renderEditCell: renderEditGrade,
-    getApplyQuickFilterFn: () => null,
+    renderCell: renderGrade, renderEditCell: renderEditGrade, getApplyQuickFilterFn: () => null,
   },
   {
     field: 'status', headerName: 'Status', width: 120, editable: true,
-    renderCell: renderStatus, renderEditCell: renderEditStatus,
-    getApplyQuickFilterFn: () => null,
+    renderCell: renderStatus, renderEditCell: renderEditStatus, getApplyQuickFilterFn: () => null,
   },
   { field: 'enrollmentDate', headerName: 'Enrolled', width: 120, editable: true, getApplyQuickFilterFn: () => null },
-  // Exercise scores with progress bars
   ...EXERCISE_KEYS.map(
     (key, i): GridColDef => ({
-      field: key,
-      headerName: `Ex ${i + 1}`,
-      width: 90,
-      type: 'number',
-      editable: true,
-      renderCell: renderScore,
-      getApplyQuickFilterFn: () => null,
+      field: key, headerName: `Ex ${i + 1}`, width: 90, type: 'number',
+      editable: true, renderCell: renderScore, getApplyQuickFilterFn: () => null,
     }),
   ),
-  // Aggregates (readonly)
   { field: 'avgScore', headerName: 'Avg', width: 80, type: 'number', renderCell: renderScore, getApplyQuickFilterFn: () => null },
   { field: 'minScore', headerName: 'Min', width: 70, type: 'number', renderCell: renderScore, getApplyQuickFilterFn: () => null },
   { field: 'maxScore', headerName: 'Max', width: 70, type: 'number', renderCell: renderScore, getApplyQuickFilterFn: () => null },
@@ -140,20 +153,17 @@ const columns: GridColDef[] = [
   { field: 'passRate', headerName: 'Pass %', width: 90, renderCell: renderPassRate, getApplyQuickFilterFn: () => null },
 ];
 
-function CustomToolbar() {
-  return (
-    <Toolbar>
-      <QuickFilter>
-        <QuickFilterControl placeholder="Search student names..." />
-      </QuickFilter>
-    </Toolbar>
-  );
-}
+// --- Initial pinned columns ---
+const INITIAL_PINNED: GridPinnedColumnFields = {
+  left: ['__check__', '__detail_panel_toggle__', 'name'],
+  right: ['avgScore', 'passRate'],
+};
 
-const slotsConfig = { toolbar: CustomToolbar } as const;
-
-export default function MuiDataGridProPage() {
+export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
+  const students = useMemo(() => getStudents(rowCount), [rowCount]);
   const [rows, setRows] = useState<StudentRow[]>(() => [...students]);
+  const [selectionModel, setSelectionModel] = useState<GridRowSelectionModel>({ type: 'include', ids: new Set() });
+  const [bulkGrade, setBulkGrade] = useState<Grade>('A');
   const {
     metrics, startMeasure, endMeasure, endMeasureSync, setMetric,
     flashRef, renderCountElRef, renderTimeElRef,
@@ -173,21 +183,33 @@ export default function MuiDataGridProPage() {
     });
   }, [setMetric]);
 
+  // --- Bulk edit: set grade for all selected rows ---
+  const handleBulkGradeChange = useCallback(() => {
+    const selectedIds = selectionModel.type === 'include' ? selectionModel.ids : new Set<number>();
+    if (selectedIds.size === 0) return;
+    startMeasure('lastEdit');
+    setRows((prev) =>
+      prev.map((r) => {
+        if (!selectedIds.has(r.id)) return r;
+        const updated = { ...r, grade: bulkGrade };
+        return updated;
+      }),
+    );
+    endMeasureSync('lastEdit');
+  }, [selectionModel, bulkGrade, startMeasure, endMeasureSync]);
+
+  const selectedCount = selectionModel.type === 'include' ? selectionModel.ids.size : 0;
+
   const processRowUpdate = useCallback(
     async (newRow: StudentRow, oldRow: StudentRow) => {
       startMeasure('lastEdit');
-
-      // Recompute aggregates if an exercise score changed
       const changedField = Object.keys(newRow).find(
         (k) => newRow[k as keyof StudentRow] !== oldRow[k as keyof StudentRow],
       );
       if (changedField?.startsWith('ex')) {
         computeAggregates(newRow);
       }
-
-      // Optimistic update
       setRows((prev) => prev.map((r) => (r.id === newRow.id ? newRow : r)));
-
       try {
         if (changedField) {
           await mockDbSave(newRow.id, changedField, newRow[changedField as keyof StudentRow]);
@@ -216,28 +238,44 @@ export default function MuiDataGridProPage() {
 
   const handleProcessRowUpdateError = useCallback((err: unknown) => console.error(err), []);
   const getRowId = useCallback((row: StudentRow) => row.id, []);
+  const getDetailPanelContent = useCallback((params: GridRowParams<StudentRow>) => <DetailPanel row={params} />, []);
+  const getDetailPanelHeight = useCallback(() => 'auto' as const, []);
 
   return (
     <ThemeProvider theme={darkTheme}>
       <div className="mui-grid-page">
         <PerformancePanel
-          metrics={metrics}
-          gridName="MUI DataGrid Pro"
-          flashRef={flashRef}
-          renderCountElRef={renderCountElRef}
-          renderTimeElRef={renderTimeElRef}
+          metrics={metrics} gridName="MUI DataGrid Pro"
+          flashRef={flashRef} renderCountElRef={renderCountElRef} renderTimeElRef={renderTimeElRef}
         />
+        <div className="bulk-toolbar">
+          {selectedCount > 0 && (
+            <div className="bulk-actions">
+              <span className="bulk-count">{selectedCount} selected</span>
+              <select className="bulk-select" value={bulkGrade} onChange={(e) => setBulkGrade(e.target.value as Grade)}>
+                {GRADES.map((g) => <option key={g} value={g}>{g}</option>)}
+              </select>
+              <button className="bulk-btn" onClick={handleBulkGradeChange}>Set Grade</button>
+            </div>
+          )}
+          <span className="sort-hint">Shift+Click headers for multi-sort</span>
+        </div>
         <div className="mui-grid-container">
           <DataGridPro
             rows={rows}
             columns={columns}
             checkboxSelection
             disableRowSelectionOnClick
+            rowSelectionModel={selectionModel}
+            onRowSelectionModelChange={setSelectionModel}
             processRowUpdate={processRowUpdate}
             onProcessRowUpdateError={handleProcessRowUpdateError}
             onSortModelChange={handleSortModelChange}
             onFilterModelChange={handleFilterModelChange}
-            slots={slotsConfig}
+            pinnedColumns={INITIAL_PINNED}
+            getDetailPanelContent={getDetailPanelContent}
+            getDetailPanelHeight={getDetailPanelHeight}
+            showToolbar
             getRowId={getRowId}
             rowHeight={35}
             columnHeaderHeight={40}

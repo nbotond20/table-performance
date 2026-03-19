@@ -52,14 +52,13 @@ const EMAIL_DOMAINS = [
   'school.edu', 'university.edu', 'college.edu', 'academy.org', 'institute.edu',
 ] as const;
 
-const ROW_COUNT = 10_000;
 const SEED = 42;
 
 function padDate(n: number) {
   return String(n).padStart(2, '0');
 }
 
-function computeAggregates(row: StudentRow) {
+export function computeAggregates(row: StudentRow) {
   let sum = 0;
   let min = 101;
   let max = -1;
@@ -78,18 +77,15 @@ function computeAggregates(row: StudentRow) {
   row.passRate = Math.round((passing / EXERCISE_COUNT) * 100);
 }
 
-export { computeAggregates };
-
-function generate(): StudentRow[] {
+export function generateStudents(count: number): StudentRow[] {
   const rng = mulberry32(SEED);
-  const rows: StudentRow[] = new Array(ROW_COUNT);
+  const rows: StudentRow[] = new Array(count);
 
-  for (let i = 0; i < ROW_COUNT; i++) {
+  for (let i = 0; i < count; i++) {
     const firstName = pick(FIRST_NAMES, rng);
     const lastName = pick(LAST_NAMES, rng);
     const name = `${firstName} ${lastName}`;
 
-    // Enrollment date between 2019-01-01 and 2024-12-31
     const year = 2019 + Math.floor(rng() * 6);
     const month = 1 + Math.floor(rng() * 12);
     const day = 1 + Math.floor(rng() * 28);
@@ -115,4 +111,16 @@ function generate(): StudentRow[] {
   return rows;
 }
 
-export const students: readonly StudentRow[] = Object.freeze(generate());
+// Pre-generated caches keyed by row count
+const cache = new Map<number, readonly StudentRow[]>();
+
+export function getStudents(count: number): readonly StudentRow[] {
+  let data = cache.get(count);
+  if (!data) {
+    data = Object.freeze(generateStudents(count));
+    cache.set(count, data);
+  }
+  return data;
+}
+
+export const ROW_COUNT_OPTIONS = [1_000, 5_000, 10_000, 50_000, 100_000] as const;
