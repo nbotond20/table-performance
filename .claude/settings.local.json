@@ -12,7 +12,15 @@
       "Bash(grep ExpandedState node_modules/.pnpm/@tanstack+react-table@8.21.3*/node_modules/@tanstack/react-table/build/lib/index.d.ts)",
       "Bash(find node_modules/.pnpm/@tanstack+react-table@8.21.3* -name index.d.ts)",
       "WebFetch(domain:probable-broccoli-v358v4n.pages.github.io)",
-      "Bash(npx vite:*)"
+      "Bash(npx vite:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(npm install:*)",
+      "Bash(npm -v)",
+      "Bash(ls c:/Users/nuszp/Desktop/work/dashboard-comparison/node_modules/.pnpm/react-data-grid*/node_modules/react-data-grid/lib/)",
+      "Bash(node -e \":*)",
+      "Bash(grep -r GridRowSelectionModel node_modules/.pnpm/**/x-data-grid/index.d.ts)",
+      "Bash(find c:/Users/nuszp/Desktop/work/dashboard-comparison/node_modules/.pnpm -name index.d.ts -path *x-data-grid*)",
+      "Bash(grep -r 'type GridRowSelectionModel' c:/Users/nuszp/Desktop/work/dashboard-comparison/node_modules/.pnpm/@mui+x-data-grid@8.27.5*/node_modules/@mui/x-data-grid/)"
     ]
   }
 }

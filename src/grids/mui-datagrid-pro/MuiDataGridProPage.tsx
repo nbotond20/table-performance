@@ -183,22 +183,25 @@ export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
     });
   }, [setMetric]);
 
+  const selectedCount = selectionModel.type === 'include'
+    ? selectionModel.ids.size
+    : rows.length - selectionModel.ids.size;
+
   // --- Bulk edit: set grade for all selected rows ---
   const handleBulkGradeChange = useCallback(() => {
-    const selectedIds = selectionModel.type === 'include' ? selectionModel.ids : new Set<number>();
-    if (selectedIds.size === 0) return;
+    if (selectedCount === 0) return;
+    const { type, ids } = selectionModel;
     startMeasure('lastEdit');
     setRows((prev) =>
       prev.map((r) => {
-        if (!selectedIds.has(r.id)) return r;
-        const updated = { ...r, grade: bulkGrade };
-        return updated;
+        if (r.grade === bulkGrade) return r;
+        const isSelected = type === 'include' ? ids.has(r.id) : !ids.has(r.id);
+        if (!isSelected) return r;
+        return { ...r, grade: bulkGrade };
       }),
     );
     endMeasureSync('lastEdit');
-  }, [selectionModel, bulkGrade, startMeasure, endMeasureSync]);
-
-  const selectedCount = selectionModel.type === 'include' ? selectionModel.ids.size : 0;
+  }, [selectionModel, selectedCount, bulkGrade, startMeasure, endMeasureSync]);
 
   const processRowUpdate = useCallback(
     async (newRow: StudentRow, oldRow: StudentRow) => {

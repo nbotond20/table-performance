@@ -20,6 +20,11 @@ const gridTestCases: GridTestCase[] = [
     label: 'TanStack Table',
     Component: lazy(() => import('./grids/tanstack-table/TanStackTablePage')),
   },
+  {
+    id: 'react-data-grid',
+    label: 'React Data Grid',
+    Component: lazy(() => import('./grids/react-data-grid/ReactDataGridPage')),
+  },
 ];
 
 export default function App() {
