@@ -1,73 +1,87 @@
-# React + TypeScript + Vite
+# Data Grid Performance Benchmark
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React application for benchmarking and comparing three popular data grid libraries side by side with realistic data and built-in performance metrics.
 
-Currently, two official plugins are available:
+**[Live Demo](https://nbotond20.github.io/table-performance/)**
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Libraries Compared
 
-## React Compiler
+- **MUI DataGrid Pro** — Full-featured commercial grid with built-in editing, virtualization, and detail panels
+- **TanStack Table** — Headless table library with manual rendering and `@tanstack/react-virtual` for virtualization
+- **React Data Grid** — Lightweight grid component (v7 beta) with custom row renderers
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Features
 
-## Expanding the ESLint configuration
+- **Scalable datasets** — Generate 25 to 100,000 rows of deterministic student data (40 columns)
+- **Virtualization toggle** — Compare virtualized vs. non-virtualized rendering
+- **Inline cell editing** — Single-click to edit, Tab/Enter navigation, mock database save with simulated latency
+- **Sorting & filtering** — Single and multi-column sorting, debounced name search
+- **Row expansion** — Expandable detail panels for each row
+- **Bulk actions** — Multi-row selection with batch grade updates
+- **Column pinning & resizing** — Fixed left/right columns with draggable borders
+- **Performance panel** — Real-time metrics for initial render, sort, filter, edit duration, and render count
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech Stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- React 19 + TypeScript
+- Vite
+- MUI DataGrid Pro
+- TanStack Table + TanStack Virtual
+- React Data Grid
+- Catppuccin Mocha dark theme
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Getting Started
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# Install dependencies
+pnpm install
+
+# Start dev server
+pnpm dev
+
+# Build for production
+pnpm build
+
+# Preview production build
+pnpm preview
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Project Structure
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── App.tsx                        # Grid selector, row count, virtualization toggle
+├── types/student.ts               # StudentRow, Grade, Status types
+├── data/
+│   ├── generateStudents.ts        # Deterministic data generator (seeded PRNG)
+│   └── mockDb.ts                  # Simulated async save endpoint
+├── hooks/
+│   └── usePerformanceTracker.ts   # Performance measurement hook
+├── components/
+│   └── PerformancePanel.tsx       # Metrics sidebar
+└── grids/
+    ├── tanstack-table/            # TanStack Table implementation
+    ├── mui-datagrid-pro/          # MUI DataGrid Pro implementation
+    └── react-data-grid/           # React Data Grid implementation
+```
+
+## Data Model
+
+Each row represents a student with:
+
+| Category | Columns | Editable |
+|----------|---------|----------|
+| Metadata | name, email, age, grade, status, enrollmentDate | No |
+| Exercises | ex1–ex30 (scores 0–100) | Yes |
+| Aggregates | avgScore, minScore, maxScore, totalPoints, passRate | No (computed) |
+
+## Performance Metrics
+
+The sidebar panel tracks:
+
+- **Initial render** — Time from mount to first paint
+- **Sort duration** — Time from click to rendered result
+- **Filter duration** — Time from input to filtered display
+- **Edit duration** — Time from save to state update + mock DB response
+- **Render count** — Total component re-renders
+- **Last render cycle** — Time between commits via requestAnimationFrame
