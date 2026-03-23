@@ -620,7 +620,7 @@ export default function TanStackTablePage({ rowCount, virtualized }: { rowCount:
                     </tr>
                   );
                 })
-              : flatItems.map((item, index) => {
+              : flatItems.map((item) => {
                   if (item.type === 'detail') {
                     return (
                       <tr key={`detail-${item.row.id}`} className="detail-row">
