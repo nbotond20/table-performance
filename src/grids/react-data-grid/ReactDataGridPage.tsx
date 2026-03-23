@@ -215,7 +215,7 @@ function DetailPanel({ student }: { student: StudentRow }) {
 }
 
 // ─── Main component ─────────────────────────────────────────
-export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
+export default function ReactDataGridPage({ rowCount, virtualized }: { rowCount: number; virtualized: boolean }) {
   const students = useMemo(() => getStudents(rowCount), [rowCount]);
   const [data, setData] = useState<StudentRow[]>(() => [...students]);
   const [sortColumns, setSortColumns] = useState<readonly SortColumn[]>([]);
@@ -492,6 +492,7 @@ export default function ReactDataGridPage({ rowCount }: { rowCount: number }) {
           onRowsChange={handleRowsChange}
           onCellClick={handleCellClick as any}
           renderers={renderers}
+          enableVirtualization={virtualized}
           defaultColumnOptions={{ resizable: true, sortable: true }}
           className="rdg-dark rdg-custom"
         />

@@ -310,7 +310,7 @@ type FlatItem =
   | { type: 'row'; row: Row<StudentRow> }
   | { type: 'detail'; row: Row<StudentRow> };
 
-export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
+export default function TanStackTablePage({ rowCount, virtualized }: { rowCount: number; virtualized: boolean }) {
   const students = useMemo(() => getStudents(rowCount), [rowCount]);
   const [data, setData] = useState<StudentRow[]>(() => [...students]);
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -519,6 +519,7 @@ export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
     getScrollElement: () => parentRef.current,
     estimateSize: (index) => flatItems[index]?.type === 'detail' ? 120 : 35,
     overscan: 20,
+    enabled: virtualized,
   });
 
   // Measure initial render
@@ -576,48 +577,75 @@ export default function TanStackTablePage({ rowCount }: { rowCount: number }) {
               </tr>
             ))}
           </thead>
-          <tbody style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const item = flatItems[virtualItem.index];
-              if (item.type === 'detail') {
-                return (
-                  <tr key={`detail-${item.row.id}`}
-                    data-index={virtualItem.index}
-                    ref={(node) => virtualizer.measureElement(node)}
-                    className="detail-row"
-                    style={{
-                      position: 'absolute', top: 0, left: 0, width: '100%',
-                      transform: `translateY(${virtualItem.start}px)`,
-                    }}>
-                    <td colSpan={colCount}>
-                      <DetailPanel student={item.row.original} />
-                    </td>
-                  </tr>
-                );
-              }
-              const row = item.row;
-              return (
-                <tr key={row.id}
-                  data-index={virtualItem.index}
-                  ref={(node) => virtualizer.measureElement(node)}
-                  className={row.getIsSelected() ? 'row-selected' : ''}
-                  style={{
-                    position: 'absolute', top: 0, left: 0, width: '100%',
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}>
-                  {row.getVisibleCells().map((cell) => {
-                    const pinStyle = getColumnPinOffset(cell.column, table);
+          <tbody style={virtualized ? { height: virtualizer.getTotalSize(), position: 'relative' } : undefined}>
+            {virtualized
+              ? virtualizer.getVirtualItems().map((virtualItem) => {
+                  const item = flatItems[virtualItem.index];
+                  if (item.type === 'detail') {
                     return (
-                      <td key={cell.id}
-                        style={{ width: cell.column.getSize(), ...pinStyle }}
-                        className={pinStyle ? 'pinned' : ''}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
+                      <tr key={`detail-${item.row.id}`}
+                        data-index={virtualItem.index}
+                        ref={(node) => virtualizer.measureElement(node)}
+                        className="detail-row"
+                        style={{
+                          position: 'absolute', top: 0, left: 0, width: '100%',
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}>
+                        <td colSpan={colCount}>
+                          <DetailPanel student={item.row.original} />
+                        </td>
+                      </tr>
                     );
-                  })}
-                </tr>
-              );
-            })}
+                  }
+                  const row = item.row;
+                  return (
+                    <tr key={row.id}
+                      data-index={virtualItem.index}
+                      ref={(node) => virtualizer.measureElement(node)}
+                      className={row.getIsSelected() ? 'row-selected' : ''}
+                      style={{
+                        position: 'absolute', top: 0, left: 0, width: '100%',
+                        transform: `translateY(${virtualItem.start}px)`,
+                      }}>
+                      {row.getVisibleCells().map((cell) => {
+                        const pinStyle = getColumnPinOffset(cell.column, table);
+                        return (
+                          <td key={cell.id}
+                            style={{ width: cell.column.getSize(), ...pinStyle }}
+                            className={pinStyle ? 'pinned' : ''}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })
+              : flatItems.map((item, index) => {
+                  if (item.type === 'detail') {
+                    return (
+                      <tr key={`detail-${item.row.id}`} className="detail-row">
+                        <td colSpan={colCount}>
+                          <DetailPanel student={item.row.original} />
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const row = item.row;
+                  return (
+                    <tr key={row.id} className={row.getIsSelected() ? 'row-selected' : ''}>
+                      {row.getVisibleCells().map((cell) => {
+                        const pinStyle = getColumnPinOffset(cell.column, table);
+                        return (
+                          <td key={cell.id}
+                            style={{ width: cell.column.getSize(), ...pinStyle }}
+                            className={pinStyle ? 'pinned' : ''}>
+                            {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                          </td>
+                        );
+                      })}
+                    </tr>
+                  );
+                })}
           </tbody>
         </table>
       </div>

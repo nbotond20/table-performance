@@ -164,7 +164,7 @@ const INITIAL_PINNED: GridPinnedColumnFields = {
   right: ['avgScore', 'passRate'],
 };
 
-export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
+export default function MuiDataGridProPage({ rowCount, virtualized }: { rowCount: number; virtualized: boolean }) {
   const apiRef = useGridApiRef();
   const students = useMemo(() => getStudents(rowCount), [rowCount]);
   const [rows, setRows] = useState<StudentRow[]>(() => [...students]);
@@ -316,6 +316,7 @@ export default function MuiDataGridProPage({ rowCount }: { rowCount: number }) {
             pinnedColumns={INITIAL_PINNED}
             getDetailPanelContent={getDetailPanelContent}
             getDetailPanelHeight={getDetailPanelHeight}
+            disableVirtualization={!virtualized}
             showToolbar
             getRowId={getRowId}
             rowHeight={35}

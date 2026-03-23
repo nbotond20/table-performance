@@ -5,7 +5,7 @@ import './App.css';
 interface GridTestCase {
   id: string;
   label: string;
-  Component: React.LazyExoticComponent<React.ComponentType<{ rowCount: number }>>;
+  Component: React.LazyExoticComponent<React.ComponentType<{ rowCount: number; virtualized: boolean }>>;
 }
 
 // --- Registry: add new grid test cases here ---
@@ -29,6 +29,9 @@ const gridTestCases: GridTestCase[] = [
 
 export default function App() {
   const [activeId, setActiveId] = useState(gridTestCases[0].id);
+  const [virtualized, setVirtualized] = useState(() => {
+    return localStorage.getItem('virtualized') !== 'false';
+  });
   const [rowCount, setRowCount] = useState(() => {
     const saved = localStorage.getItem('rowCount');
     const parsed = saved ? Number(saved) : NaN;
@@ -38,6 +41,10 @@ export default function App() {
   const handleRowCountChange = (value: number) => {
     setRowCount(value);
     localStorage.setItem('rowCount', String(value));
+  };
+  const handleVirtualizedChange = (checked: boolean) => {
+    setVirtualized(checked);
+    localStorage.setItem('virtualized', String(checked));
   };
   const active = gridTestCases.find((tc) => tc.id === activeId)!;
 
@@ -70,10 +77,18 @@ export default function App() {
             ))}
           </select>
         </div>
+        <label className="virtualization-toggle">
+          <input
+            type="checkbox"
+            checked={virtualized}
+            onChange={(e) => handleVirtualizedChange(e.target.checked)}
+          />
+          Virtualization
+        </label>
       </header>
       <main className="app-main">
         <Suspense fallback={<div className="loading">Loading grid...</div>}>
-          <active.Component key={`${active.id}-${rowCount}`} rowCount={rowCount} />
+          <active.Component key={`${active.id}-${rowCount}-${virtualized}`} rowCount={rowCount} virtualized={virtualized} />
         </Suspense>
       </main>
     </div>
