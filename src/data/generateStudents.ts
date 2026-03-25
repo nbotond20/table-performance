@@ -123,4 +123,4 @@ export function getStudents(count: number): readonly StudentRow[] {
   return data;
 }
 
-export const ROW_COUNT_OPTIONS = [25, 50, 100, 1_000, 5_000, 10_000, 50_000, 100_000] as const;
+export const ROW_COUNT_OPTIONS = [25, 50, 100, 500, 1_000, 5_000, 10_000, 50_000, 100_000] as const;
