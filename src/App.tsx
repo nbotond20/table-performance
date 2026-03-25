@@ -48,6 +48,14 @@ export default function App() {
   };
   const active = gridTestCases.find((tc) => tc.id === activeId)!;
 
+  const MAX_ROWS_WITHOUT_VIRTUALIZATION = 500;
+  const availableRowOptions = virtualized
+    ? ROW_COUNT_OPTIONS
+    : ROW_COUNT_OPTIONS.filter((n) => n <= MAX_ROWS_WITHOUT_VIRTUALIZATION);
+  const effectiveRowCount = virtualized
+    ? rowCount
+    : Math.min(rowCount, MAX_ROWS_WITHOUT_VIRTUALIZATION);
+
   return (
     <div className="app-shell">
       <header className="app-header">
@@ -67,10 +75,10 @@ export default function App() {
           <label htmlFor="row-count">Rows:</label>
           <select
             id="row-count"
-            value={rowCount}
+            value={effectiveRowCount}
             onChange={(e) => handleRowCountChange(Number(e.target.value))}
           >
-            {ROW_COUNT_OPTIONS.map((n) => (
+            {availableRowOptions.map((n) => (
               <option key={n} value={n}>
                 {n.toLocaleString()}
               </option>
@@ -88,7 +96,7 @@ export default function App() {
       </header>
       <main className="app-main">
         <Suspense fallback={<div className="loading">Loading grid...</div>}>
-          <active.Component key={`${active.id}-${rowCount}-${virtualized}`} rowCount={rowCount} virtualized={virtualized} />
+          <active.Component key={`${active.id}-${effectiveRowCount}-${virtualized}`} rowCount={effectiveRowCount} virtualized={virtualized} />
         </Suspense>
       </main>
     </div>
